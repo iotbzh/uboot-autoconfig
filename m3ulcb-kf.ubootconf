@@ -1,0 +1,69 @@
+env default -a
+
+setenv board @BOARD@
+setenv soc @SOC@
+setenv bootmode @BOOTMODE@
+
+setenv bootmmc '@BOOTMMC@'
+setenv ipaddr '@IPADDR@'
+setenv serverip '@SERVERIP@'
+setenv ethaddr '@MACADDR@'
+
+################## Internal variables #####################
+setenv ethact ravb
+
+# kernel file
+setenv set_bootkfile 'setenv bootkfile Image'
+setenv bootkaddr 0x48080000
+
+# dtb file (specific to mode)
+setenv bootdaddr 0x48000000
+
+# initrd
+setenv set_bootifile 'setenv bootifile initramfs-netboot-image-${board}.ext4.gz'
+setenv bootiaddr 0x5C3F9520
+setenv bootisize 3A6AB6
+
+# kernel args
+setenv bootargs_console 'console=ttySC0,115200 ignore_loglevel'
+setenv bootargs_video 'vmalloc=384M video=HDMI-A-1:1920x1080-32@60'
+setenv bootargs_extra 'rw rootfstype=ext4 rootwait rootdelay=2'
+
+# final boot command
+setenv bootcmd 'run bootcmd_${bootmode}'
+
+################ Boot on MMC (SDcard) #################
+
+# dtb file
+setenv set_bootdfile_sd 'setenv bootdfile devicetree-Image-${soc}-${board}-kf.dtb'
+
+setenv bootkload_sd 'ext4load mmc ${bootmmc} ${bootkaddr} boot/${bootkfile}'
+setenv bootiload_sd 'ext4load mmc ${bootmmc} ${bootiaddr} boot/${bootifile}'
+setenv bootdload_sd 'ext4load mmc ${bootmmc} ${bootdaddr} boot/${bootdfile}'
+
+# without initrd
+setenv bootargs_root_sd 'root=/dev/mmcblk1p1'
+setenv bootload_sd 'run set_bootkfile; run bootkload_sd; run set_bootdfile_sd; run bootdload_sd'
+setenv bootcmd_sd 'setenv bootargs ${bootargs_console} ${bootargs_video} ${bootargs_root_sd} ${bootargs_extra}; run bootload_sd; booti ${bootkaddr} - ${bootdaddr}'
+
+# with initrd
+setenv bootargs_root_sdi 'root=/dev/ram0 ramdisk_size=16384'
+setenv bootload_sdi 'run set_bootkfile; run bootkload_sd; run set_bootdfile_sd; run bootdload_sd; run set_bootifile; run bootiload_sd'
+setenv bootcmd_sdi 'setenv bootargs ${bootargs_console} ${bootargs_video} ${bootargs_root_sdi} ${bootargs_extra}; run bootload_sdi; booti ${bootkaddr} ${bootiaddr}:${bootisize} ${bootdaddr}'
+
+################ Netboot through TFTP+NBD ##################
+
+setenv set_bootdfile_net 'setenv bootdfile Image-${soc}-${board}-kf.dtb'
+
+setenv bootkload_net 'tftp ${bootkaddr} ${board}/${bootkfile}'
+setenv bootdload_net 'tftp ${bootdaddr} ${board}/${bootdfile}'
+setenv bootiload_net 'tftp ${bootiaddr} ${board}/${bootifile}'
+
+setenv bootargs_root_net 'root=/dev/ram0 ramdisk_size=16384 ip=dhcp'
+setenv bootload_net 'run set_bootkfile; run bootkload_net; run set_bootdfile_net; run bootdload_net; run set_bootifile; run bootiload_net'
+
+setenv bootcmd_net 'setenv bootargs ${bootargs_console} ${bootargs_video} ${bootargs_root_net} ${bootargs_extra} nbd.server=${serverip}; run bootload_net; booti ${bootkaddr} ${bootiaddr}:${bootisize} ${bootdaddr}'
+
+
+
+env print

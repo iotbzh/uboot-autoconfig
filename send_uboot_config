@@ -1,0 +1,117 @@
+#!/bin/bash
+
+###########################################################################
+# Copyright 2018 IoT.bzh
+#
+# author: Stephane Desneux <sdx@iot.bzh>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+###########################################################################
+
+set -e
+
+DEBUG=0
+
+function config.parser() {
+	local ini=$( sed -r \
+		-e 's/[[:space:]]*=[[:space:]]*/=/g' \
+		-e 's/[;#].*$//' \
+		-e 's/^\[(.*)\]$/}\nconfig.section.\1() {/g' \
+		-e 's/[[:space:]]*$//' \
+		-e 's/^[[:space:]]*//' \
+		-e '/^\s*$/d' \
+		-e 's/^(.*)=(.*)$/\1="\2"/' \
+	<$1 | tail -n +2; echo "}"; )
+
+	[[ "$DEBUG" == "1" ]] && {
+		echo "----- generated config -----"
+		echo "$ini"
+		echo "----------------------------"
+	}
+
+	eval "$ini"
+}
+
+function config.available_sections() {
+	sed -r -n -e '/^\[.*\]$/p' <$1 | sed 's/[][]//g'
+}
+
+function config.section() {
+	local name=$1
+	[[ $(type -t config.section.$name) != "function" ]] && return 1
+	config.section.$name
+}
+
+function usage() {
+	echo "Usage: $0 <board_name> <uboot_command_file>" >&2
+	echo "Available board names (from $CONFIG):" >&2
+	config.available_sections $CONFIG | sed 's/^/   - /g' >&2
+	exit 1
+}
+
+function error() {
+	echo "ERROR: $@" >&2
+	exit 1
+}
+
+# ------------------------------------------------------------------------------
+
+CONFIG=$(dirname $0)/boards.conf
+
+# board name
+NAME=$1
+[[ -z "$NAME" || "$NAME" =~ ^(-h|--help)$ ]] && usage
+
+INPUT=$2
+[[ -z "$INPUT" ]] && usage
+[[ ! -f "$INPUT" ]] && error "Invalid input file '$INPUT'"
+
+config.parser $CONFIG || error "Invalid config file $CONFIG"
+config.section $NAME || error "Unknown board '$NAME'. Check configuration file $CONFIG " $'\n' $'\n'"Available sections are:" $'\n'$(config.available_sections $CONFIG)
+
+# serial port and options
+serialport=${serialport:-/dev/ttyUSB0}
+[[ ! -c "$serialport" ]] && error "Invalid serial port '$serialport'"
+
+seropts=${seropts:-sane raw ignbrk -onlcr -iexten -echo -echoe -echok -echoctl -echoke}
+speed=${speed:-115200}
+
+for x in board soc bootmode bootmmc ipaddr serverip macaddr; do
+	[[ -z "${!x}" ]] && error "variable $x is not set" || echo "$x: ${!x}"
+done
+
+echo "Configuring serial port $serialport with speed $speed"
+stty -F $serialport $speed $SEROPTS
+
+# redirect serial output to console
+exec 3<$serialport
+cat <&3 &
+PID=$!
+trap "kill $PID" STOP INT QUIT EXIT
+
+# read template file whjle substituting vars
+cat $INPUT | sed \
+	-e "s/@BOARD@/$board/g" \
+	-e "s/@SOC@/$soc/g" \
+	-e "s/@BOOTMODE@/$bootmode/g" \
+	-e "s/@BOOTMMC@/$bootmmc/g" \
+	-e "s/@IPADDR@/$ipaddr/g" \
+	-e "s/@SERVERIP@/$serverip/g" \
+	-e "s/@MACADDR@/$macaddr/g" \
+| sed -r -e 's/#.*$//g' -e '/^\s*$/d' | while IFS="" read line; do 
+	echo $line >$serialport
+	sleep 0.1 # throttling to avoid garbage characters
+done
+
+sleep 0.2
+

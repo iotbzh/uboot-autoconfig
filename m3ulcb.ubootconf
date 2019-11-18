@@ -35,7 +35,7 @@ setenv bootcmd 'run bootcmd_${bootmode}'
 ################ Boot on MMC (SDcard) #################
 
 # dtb file
-setenv set_bootdfile_sd 'setenv bootdfile devicetree-Image-${soc}-${board}.dtb'
+setenv set_bootdfile_sd 'setenv bootdfile ${soc}-${board}.dtb'
 
 setenv bootkload_sd 'ext4load mmc ${bootmmc} ${bootkaddr} boot/${bootkfile}'
 setenv bootiload_sd 'ext4load mmc ${bootmmc} ${bootiaddr} boot/${bootifile}'
@@ -53,7 +53,7 @@ setenv bootcmd_sdi 'setenv bootargs ${bootargs_console} ${bootargs_video} ${boot
 
 ################ Netboot through TFTP+NBD ##################
 
-setenv set_bootdfile_net 'setenv bootdfile Image-${soc}-${board}.dtb'
+setenv set_bootdfile_net 'setenv bootdfile ${soc}-${board}.dtb'
 
 setenv bootkload_net 'tftp ${bootkaddr} ${board}/${bootkfile}'
 setenv bootdload_net 'tftp ${bootdaddr} ${board}/${bootdfile}'

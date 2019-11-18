@@ -1,6 +1,6 @@
-# Automated [U-Boot] Configuration
+# Uboot Configuration for Boards
 
-The script send_uboot_config is able to push [U-Boot] configs directly to a board connected through a serial console.
+The script send_uboot_config is able to push uboot configs directly to a board connected through serial console.
 
 ## Configuration
 
@@ -33,7 +33,7 @@ serverip   = 10.0.0.5
 macaddr    = DE:AD:C0:FF:EE:00
 ```
 
-## U-Boot template file
+## UBoot template file
 
 The files \*.ubootconf are templates where @XXX@ variables are replaced by the ones set in the INI section.
 
@@ -41,7 +41,7 @@ The files \*.ubootconf are templates where @XXX@ variables are replaced by the o
 
 **Step 1** : start a terminal (minicom, picocom, screen, socat ...)
 
-**Step 2** : start the board and abort boot to get U-Boot prompt
+**Step 2** : start the board and abort boot to get uboot prompt
 
 ```
 U-Boot 2015.04 (Oct 11 2017 - 20:47:11)
@@ -71,7 +71,7 @@ Hit any key to stop autoboot:  0
 ./send_uboot_config <board name> <uboot config>
 ```
 
-to apply the specified U-Boot config to the named board.
+to apply the specified uboot config to the named board.
 
 
 Sample output:
@@ -178,16 +178,3 @@ To save the config in MMC memory:
 Saving Environment to MMC...
 Writing to MMC(1)... done
 ```
-
-## Future enhancements
-
-Many things could be done:
-* rewrite the thing in python (parsing ini files in bash is... well... arguable. But initially, I didn't think I'd have to do that! Not my fault :))
-* be smarter in templating,
-* automatically solve IP addresses from hostnames,
-* have templates fragments to unify things (ex: have the same config for M3 or M3+KF, and switch with a single variable)i
-* ... 
-
-The base mechanism is there. Improvements and contributions are welcome.
-
-[U-Boot]:https://www.denx.de/wiki/U-Boot

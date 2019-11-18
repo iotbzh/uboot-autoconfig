@@ -22,7 +22,7 @@ setenv bootargs_extra 'rw rootfstype=ext4 rootwait rootdelay=2'
 ################ Boot on MMC (SDcard) #################
 
 # dtb file
-setenv set_bootdfile_sd 'setenv bootdfile devicetree-Image-${soc}-${board}.dtb'
+setenv set_bootdfile_sd 'setenv bootdfile ${soc}-${board}.dtb'
 
 setenv bootkload_sd 'ext4load mmc ${bootmmc} ${bootkaddr} boot/${bootkfile}'
 setenv bootdload_sd 'ext4load mmc ${bootmmc} ${bootdaddr} boot/${bootdfile}'
